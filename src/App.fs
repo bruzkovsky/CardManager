@@ -9,6 +9,7 @@ module Browser = Fable.Import.Browser
 
 // MODEL
 
+
 type Draft =
     | NewDraft of string
     | BumpedDraft of string * int
@@ -18,12 +19,14 @@ type Model =
     { DraftForm : string
       Drafts : Draft list }
 
+
 type Msg =
 | UpdateDraftForm of string
 | CreateDraft
 | BumpDraft of string
 | RejectDraft of string
 | UnbumpDraft of string
+| RemoveDraft of string
 
 let init() : Model =
     { DraftForm = ""
@@ -65,6 +68,14 @@ let reject (title : string) (d : Draft) =
     | BumpedDraft _ -> d
     | RejectedDraft _ -> d
 
+let sortDrafts( drafts : Draft list)=
+    drafts |> List.sortByDescending(fun elem -> 
+            match elem with
+               | NewDraft _-> 0
+               | BumpedDraft (t, b) -> b 
+               | RejectedDraft _ -> -1          
+            )
+
 let update (msg:Msg) (model:Model) =
     match msg with
     | UpdateDraftForm content ->
@@ -73,22 +84,27 @@ let update (msg:Msg) (model:Model) =
         let newDraft = NewDraft model.DraftForm
         { model with
             DraftForm = ""
-            Drafts = newDraft::model.Drafts }
+            Drafts = newDraft::model.Drafts |> sortDrafts }
     | BumpDraft title ->
-        let drafts =
-            model.Drafts
-            |> List.map (bump title)
-        { model with Drafts = drafts }
+        let drafts = model.Drafts |> List.map (bump title)
+        { model with Drafts = drafts |> sortDrafts}
     | RejectDraft title ->
         let drafts = 
             model.Drafts
             |> List.map (reject title)
-        { model with Drafts = drafts }
+        { model with Drafts = drafts |> sortDrafts }
     | UnbumpDraft title ->
         let drafts =
             model.Drafts
             |> List.map (unbump title)
-        { model with Drafts = drafts }
+        { model with Drafts = drafts |> sortDrafts }
+    | RemoveDraft title ->
+        let drafts = model.Drafts |> List.choose (fun elem ->
+                match elem with
+                | RejectedDraft (t) -> if t = title then None else Some(elem)
+                | _ -> Some(elem))
+        printfn "%A" drafts  |> Browser.console.log
+        { model with Drafts = drafts |> sortDrafts }
 
 // VIEW (rendered with React)
 
@@ -102,10 +118,9 @@ let newDraftTile dispatch (title : string) =
               Card.content []
                 [ Content.content [] [ str "Your prestine card draft." ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft title |> dispatch) ] ]
-                    [ str "Bump" ]
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RejectDraft title |> dispatch) ] ]
-                    [ str "Reject" ] ] ] ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft title |> dispatch) ] ] [ str "Bump" ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RejectDraft title |> dispatch) ] ] [ str "Reject" ] 
+                  ] ] ]
 
 let rejectedDraftTile dispatch (title : string) =
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
@@ -115,7 +130,9 @@ let rejectedDraftTile dispatch (title : string) =
               Card.content []
                 [ Content.content [] [ str "Unfortunately this draft has been rejected 🙁" ] ]
               Card.footer []
-                [ ] ] ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveDraft title |> dispatch) ] ]
+                    [ str "Remove" ]               
+                ] ] ]
 
 let bumpedDraftTile dispatch (title : string) (bumps : int) =
     let text = sprintf "Your prestine card draft. Bumped %d" bumps
@@ -178,10 +195,7 @@ let view (model:Model) dispatch =
                                                Input.Value model.DraftForm
                                                Input.OnChange (fun ev -> UpdateDraftForm ev.Value |> dispatch)
                                                Input.Option.Props
-                                                 [ (* _4_ there is a OnKeyUp you can use here
-                                                      the event holds the id of the pressed key
-                                                      you can look up which id corresponds with 'enter'
-                                                    *) ] ] ]
+                                                 [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ] ]
                               Card.footer []
                                 [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> dispatch CreateDraft) ] ]
                                     [ str "Submit" ] ] ] ] ]
