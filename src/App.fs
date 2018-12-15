@@ -23,7 +23,7 @@ type Msg =
 | CreateDraft
 | BumpDraft of string
 | RejectDraft of string
-(* _3_a_ define the UnbumpDraft message here. *)
+| UnbumpDraft of string
 
 let init() : Model =
     { DraftForm = ""
@@ -84,7 +84,11 @@ let update (msg:Msg) (model:Model) =
             model.Drafts
             |> List.map (reject title)
         { model with Drafts = drafts }
-    (* _3_b_ Handle the UnbumpDraft message here - use the unbump method *)
+    | UnbumpDraft title ->
+        let drafts =
+            model.Drafts
+            |> List.map (unbump title)
+        { model with Drafts = drafts }
 
 // VIEW (rendered with React)
 
@@ -100,7 +104,7 @@ let newDraftTile dispatch (title : string) =
               Card.footer []
                 [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft title |> dispatch) ] ]
                     [ str "Bump" ]
-                  Card.Footer.a [ (* _1_ insert the handler here *) ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RejectDraft title |> dispatch) ] ]
                     [ str "Reject" ] ] ] ]
 
 let rejectedDraftTile dispatch (title : string) =
@@ -114,12 +118,19 @@ let rejectedDraftTile dispatch (title : string) =
                 [ ] ] ]
 
 let bumpedDraftTile dispatch (title : string) (bumps : int) =
-    (*
-        _2_ This function just reuses the tile we create for new drafts.
-        Can you create a similar tile that shows you how many bumps the draft
-        received in its content? Also: give it a link to bump it even more in the footer!
-    *)
-    newDraftTile dispatch title
+    let text = sprintf "Your prestine card draft. Bumped %d" bumps
+    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
+        [ Card.card [ ]
+            [ Card.header []
+                [ Card.Header.title [] [ str title ] ]
+              Card.content []
+                [ Content.content [] [ str text ] ]
+              Card.footer []
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft title |> dispatch) ] ]
+                    [ str "Bump" ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> UnbumpDraft title |> dispatch) ] ]
+                    [ str "UmBump" ]
+                ] ] ]
 
 let toCard dispatch (draft : Draft) =
     match draft with
