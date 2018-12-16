@@ -22,7 +22,8 @@ type Draft =
 
 type Model =
     { DraftForm : DraftModel
-      Drafts : Draft list }
+      Drafts : Draft list
+      CurrentSearch : string }
 
 
 type Msg =
@@ -32,14 +33,16 @@ type Msg =
 | RejectDraft of System.Guid
 | UnbumpDraft of System.Guid
 | RemoveDraft of System.Guid
+| Search of string
 
 let init() : Model =
     {
       DraftForm = {
           Id = Guid.NewGuid()
           Title = ""
-          Description = ""}
-      Drafts = [] }
+          Description = ""}          
+      Drafts = []
+      CurrentSearch ="" }
 
 // UPDATE
 
@@ -115,6 +118,9 @@ let update (msg:Msg) (model:Model) =
                 | _ -> Some(elem))
         printfn "%A" drafts  |> Browser.console.log
         { model with Drafts = drafts |> sortDrafts }
+    | Search searchText ->
+        { model with CurrentSearch = searchText }
+
 
 // VIEW (rendered with React)
 
@@ -172,6 +178,26 @@ let toCard dispatch (draft : Draft) =
 let toCardRow row =
     Tile.tile [ Tile.IsParent; Tile.Size Tile.Is12 ] row
 
+let getVisibleTiles  (model : Model) = 
+    model.Drafts |> List.choose (fun elem ->
+         match elem with
+        |  NewDraft d ->
+            if d.Title.IndexOf(model.CurrentSearch) <> -1 || d.Description.IndexOf(model.CurrentSearch) <> -1 then
+                Some(elem)
+            else
+                None
+        |  BumpedDraft (d , _) ->
+            if d.Title.IndexOf(model.CurrentSearch) <> -1 || d.Description.IndexOf(model.CurrentSearch) <> -1 then
+                Some(elem)
+            else
+                None          
+        |  RejectedDraft d  ->
+            if d.Title.IndexOf(model.CurrentSearch) <> -1 || d.Description.IndexOf(model.CurrentSearch) <> -1 then
+                Some(elem)
+            else
+                None                  
+        )
+
 let rec chunkByThree soFar l =
     match l with
     | x1::x2::[x3] ->
@@ -211,11 +237,15 @@ let view (model:Model) dispatch =
                                                Input.Value model.DraftForm.Description
                                                Input.OnChange (fun ev -> UpdateDraftForm (ev.Value, "description") |> dispatch)
                                                Input.Option.Props
-                                                 [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ] ]
+                                                 [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ] 
+                                  Input.text [ Input.Placeholder "Search"
+                                               Input.Value model.CurrentSearch
+                                               Input.OnChange (fun ev -> Search ev.Value |> dispatch)                                               
+                                             ]]
                               Card.footer []
                                 [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> dispatch CreateDraft) ] ]
                                     [ str "Submit" ] ] ] ] ]
-                  yield! model.Drafts |> toCardRows dispatch ] ] ]
+                  yield! model |> getVisibleTiles  |> toCardRows dispatch ] ] ]
 
 #if DEBUG
 open Elmish.Debug
