@@ -1,5 +1,6 @@
 module App
 
+open System
 open Elmish
 open Elmish.React
 open Fable.Helpers.React
@@ -7,64 +8,72 @@ open Fable.Helpers.React.Props
 
 module Browser = Fable.Import.Browser
 
-// MODEL
-
+type DraftModel = 
+    {
+        Id : Guid
+        Title : string
+        Description : string
+    }
 
 type Draft =
-    | NewDraft of string
-    | BumpedDraft of string * int
-    | RejectedDraft of string
+    | NewDraft of DraftModel
+    | BumpedDraft of DraftModel * int
+    | RejectedDraft of DraftModel
 
 type Model =
-    { DraftForm : string
+    { DraftForm : DraftModel
       Drafts : Draft list }
 
 
 type Msg =
-| UpdateDraftForm of string
+| UpdateDraftForm of string * string
 | CreateDraft
-| BumpDraft of string
-| RejectDraft of string
-| UnbumpDraft of string
-| RemoveDraft of string
+| BumpDraft of System.Guid
+| RejectDraft of System.Guid
+| UnbumpDraft of System.Guid
+| RemoveDraft of System.Guid
 
 let init() : Model =
-    { DraftForm = ""
+    {
+      DraftForm = {
+          Id = Guid.NewGuid()
+          Title = ""
+          Description = ""}
       Drafts = [] }
 
 // UPDATE
 
-let bump (title : string) (d : Draft) =
+let bump (draftId : System.Guid) (d : Draft) =
     match d with
     | NewDraft t ->
-        if t = title then
-            sprintf "Draft %s has its first bump!" t
+        if t.Id = draftId then
+            sprintf "Draft %s has its first bump!" t.Title
             |> Browser.console.log
             (BumpedDraft (t, 1))
         else d
     | BumpedDraft (t, b) ->
-        if t = title then
-            sprintf "Draft %s has now %d bumps!" t b
+        if t.Id = draftId then
+            sprintf "Draft %s has now %d bumps!" t.Title b
             |> Browser.console.log
             (BumpedDraft (t, b + 1))
         else d
     | RejectedDraft _ -> d
 
-let unbump (title : string) (d : Draft) =
+let unbump (draftId : System.Guid) (d : Draft) =
     match d with
     | NewDraft _ -> d
     | BumpedDraft (t, b) when b > 1 ->
-        if t = title then
+        if t.Id = draftId then
             (BumpedDraft (t, b - 1))
         else d
     | BumpedDraft (t, _) ->
         NewDraft t
     | RejectedDraft _ -> d
 
-let reject (title : string) (d : Draft) =
+let reject (draftId : System.Guid) (d : Draft) =
     match d with
     | NewDraft t ->
-        if t = title then (RejectedDraft t) else d
+        if t.Id = draftId then (RejectedDraft t) else d
     | BumpedDraft _ -> d
     | RejectedDraft _ -> d
 
@@ -78,30 +87,31 @@ let sortDrafts( drafts : Draft list)=
 
 let update (msg:Msg) (model:Model) =
     match msg with
-    | UpdateDraftForm content ->
-        { model with DraftForm = content }
+    | UpdateDraftForm (value, prop) ->
+        match prop with
+        | "title" ->{ model with DraftForm = {model.DraftForm with Title = value} }
+        | "description" ->{ model with DraftForm = {model.DraftForm with Description = value} }
     | CreateDraft ->
         let newDraft = NewDraft model.DraftForm
         { model with
-            DraftForm = ""
+            DraftForm = {
+                Id = Guid.NewGuid()
+                Title = ""
+                Description = ""}
             Drafts = newDraft::model.Drafts |> sortDrafts }
-    | BumpDraft title ->
-        let drafts = model.Drafts |> List.map (bump title)
+    | BumpDraft draft ->
+        let drafts = model.Drafts |> List.map (bump draft)
         { model with Drafts = drafts |> sortDrafts}
-    | RejectDraft title ->
-        let drafts = 
-            model.Drafts
-            |> List.map (reject title)
+    | RejectDraft draft ->
+        let drafts = model.Drafts |> List.map (reject draft)
         { model with Drafts = drafts |> sortDrafts }
-    | UnbumpDraft title ->
-        let drafts =
-            model.Drafts
-            |> List.map (unbump title)
+    | UnbumpDraft draft ->
+        let drafts = model.Drafts |> List.map (unbump draft)
         { model with Drafts = drafts |> sortDrafts }
-    | RemoveDraft title ->
+    | RemoveDraft draft ->
         let drafts = model.Drafts |> List.choose (fun elem ->
                 match elem with
-                | RejectedDraft (t) -> if t = title then None else Some(elem)
+                | RejectedDraft d -> if d.Id = draft then None else Some(elem)
                 | _ -> Some(elem))
         printfn "%A" drafts  |> Browser.console.log
         { model with Drafts = drafts |> sortDrafts }
@@ -110,42 +120,43 @@ let update (msg:Msg) (model:Model) =
 
 open Fulma
 
-let newDraftTile dispatch (title : string) =
+let newDraftTile dispatch (draft : DraftModel) =
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str title ] ]
+                [ Card.Header.title [] [ str draft.Title ] ]
               Card.content []
-                [ Content.content [] [ str "Your prestine card draft." ] ]
+                [ Content.content [] [ str draft.Description ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft title |> dispatch) ] ] [ str "Bump" ]
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RejectDraft title |> dispatch) ] ] [ str "Reject" ] 
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft draft.Id |> dispatch) ] ] [ str "Bump" ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RejectDraft draft.Id |> dispatch) ] ] [ str "Reject" ] 
                   ] ] ]
 
-let rejectedDraftTile dispatch (title : string) =
+let rejectedDraftTile dispatch (draft : DraftModel) =
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str title ] ]
+                [ Card.Header.title [] [ str draft.Title ] ]
               Card.content []
                 [ Content.content [] [ str "Unfortunately this draft has been rejected 🙁" ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveDraft title |> dispatch) ] ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveDraft draft.Id |> dispatch) ] ]
                     [ str "Remove" ]               
                 ] ] ]
 
-let bumpedDraftTile dispatch (title : string) (bumps : int) =
-    let text = sprintf "Your prestine card draft. Bumped %d" bumps
+let bumpedDraftTile dispatch (draft : DraftModel) (bumps : int) =
+    let text = sprintf "Rating: %d" bumps
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str title ] ]
+                [ Card.Header.title [] [ str draft.Title ] 
+                  Content.content [] [ str text ]]
               Card.content []
-                [ Content.content [] [ str text ] ]
+                [ Content.content [] [ str draft.Description ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft title |> dispatch) ] ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft draft.Id |> dispatch) ] ]
                     [ str "Bump" ]
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> UnbumpDraft title |> dispatch) ] ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> UnbumpDraft draft.Id |> dispatch) ] ]
                     [ str "UmBump" ]
                 ] ] ]
 
@@ -192,8 +203,13 @@ let view (model:Model) dispatch =
                                 [ Card.Header.title [] [ str "Write a draft!" ] ]
                               Card.content []
                                 [ Input.text [ Input.Placeholder "Your draft"
-                                               Input.Value model.DraftForm
-                                               Input.OnChange (fun ev -> UpdateDraftForm ev.Value |> dispatch)
+                                               Input.Value model.DraftForm.Title
+                                               Input.OnChange (fun ev -> UpdateDraftForm (ev.Value, "title") |> dispatch)
+                                               Input.Option.Props
+                                                 [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ]
+                                  Input.text [ Input.Placeholder "Decription"
+                                               Input.Value model.DraftForm.Description
+                                               Input.OnChange (fun ev -> UpdateDraftForm (ev.Value, "description") |> dispatch)
                                                Input.Option.Props
                                                  [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ] ]
                               Card.footer []
