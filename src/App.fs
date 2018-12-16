@@ -9,10 +9,11 @@ module Browser = Fable.Import.Browser
 
 // MODEL
 
+let user = "Matthias"
 
 type Task =
     | NewTask of string
-    | AcceptedTask of string * int
+    | AcceptedTask of string * string
     | FinishedTask of string
 
 type Model =
@@ -40,7 +41,7 @@ let accept (title : string) (d : Task) =
         if t = title then
             sprintf "Task %s was accepted!" t
             |> Browser.console.log
-            (AcceptedTask (t, 1))
+            (AcceptedTask (t, user))
         else d
     | AcceptedTask (_, _) ->
         // if t = title then
@@ -51,13 +52,9 @@ let accept (title : string) (d : Task) =
         d
     | FinishedTask _ -> d
 
-let unbump (title : string) (d : Task) =
+let unassign (title : string) (d : Task) =
     match d with
     | NewTask _ -> d
-    | AcceptedTask (t, b) when b > 1 ->
-        if t = title then
-            (AcceptedTask (t, b - 1))
-        else d
     | AcceptedTask (t, _) ->
         NewTask t
     | FinishedTask _ -> d
@@ -73,7 +70,7 @@ let sortTasks( tasks : Task list)=
     tasks |> List.sortByDescending(fun elem -> 
             match elem with
                | NewTask _-> 0
-               | AcceptedTask (t, b) -> b 
+               | AcceptedTask _ -> 0
                | FinishedTask _ -> -1          
             )
 
@@ -97,7 +94,7 @@ let update (msg:Msg) (model:Model) =
     | UnbumpTask title ->
         let tasks =
             model.Tasks
-            |> List.map (unbump title)
+            |> List.map (unassign title)
         { model with Tasks = tasks |> sortTasks }
     | RemoveTask title ->
         let tasks = model.Tasks |> List.choose (fun elem ->
@@ -118,7 +115,7 @@ let newTaskTile dispatch (title : string) =
             [ Card.header []
                 [ Card.Header.title [] [ str title ] ]
               Card.content []
-                [ Content.content [] [ str "Your prestine card task." ] ]
+                [ Content.content [] [ str "A new task." ] ]
               Card.footer []
                 [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> AcceptTask title |> dispatch) ] ] [ str "Accept" ]
                   Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveTask title |> dispatch) ] ] [ str "Remove" ] 
@@ -136,8 +133,8 @@ let finishedTaskTile dispatch (title : string) =
                     [ str "Remove" ]               
                 ] ] ]
 
-let acceptedTaskTile dispatch (title : string) (bumps : int) =
-    let text = sprintf "Your prestine card task. Bumped %d" bumps
+let acceptedTaskTile dispatch (title : string) (assignee : string) =
+    let text = sprintf "This task was accepted by %s" assignee
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
