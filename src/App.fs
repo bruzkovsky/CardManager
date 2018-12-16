@@ -18,7 +18,8 @@ type Task =
 
 type Model =
     { TaskForm : string
-      Tasks : Task list }
+      Tasks : Task list
+      User : string }
 
 
 type Msg =
@@ -28,10 +29,12 @@ type Msg =
 | FinishTask of string
 | UnbumpTask of string
 | RemoveTask of string
+| UpdateUser of string
 
 let init() : Model =
     { TaskForm = ""
-      Tasks = [] }
+      Tasks = []
+      User = "Anonymous" }
 
 // UPDATE
 
@@ -104,6 +107,8 @@ let update (msg:Msg) (model:Model) =
                 | _ -> Some(elem))
         printfn "%A" tasks  |> Browser.console.log
         { model with Tasks = tasks |> sortTasks }
+    | UpdateUser name -> 
+        { model with User = name}
 
 // VIEW (rendered with React)
 
@@ -181,7 +186,21 @@ let view (model:Model) dispatch =
       [ Navbar.navbar [ Navbar.Color IsBlack ]
             [ Navbar.Brand.div []
                 [ Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
-                    [ str "Card Manager" ] ] ]
+                    [ str "Task Manager" ] ]
+              
+              Navbar.End.div [ ]
+                [Navbar.Item.a  [   Navbar.Item.HasDropdown
+                                    Navbar.Item.IsHoverable ]
+                [ Navbar.Link.a [ ]
+                    [ str model.User ]
+                  Navbar.Dropdown.div [ ]
+                    [ Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Matthias" |> dispatch)] ]
+                        [ str "Matthias" ]
+                      Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Jürgen" |> dispatch)] ]
+                        [ str "Jürgen" ]
+                      Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Tanja" |> dispatch)] ]
+                        [ str "Tanja" ] ] ]]]
+
         Columns.columns [] [
             Column.column [ Column.Width (Screen.All, Column.Is4) ] [
                 Hero.hero [ Hero.Color IsInfo ] [
