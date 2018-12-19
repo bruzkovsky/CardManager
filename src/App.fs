@@ -8,8 +8,6 @@ open Fable.Helpers.React.Props
 
 module Browser = Fable.Import.Browser
 
-let mutable user = "Matthias"
-
 type TaskModel = 
     {
         Id : Guid
@@ -99,7 +97,7 @@ let reject (taskId : System.Guid) (d : Task) =
     | RejectedTask _ -> d
     | _ -> d
 
-let accept (taskId : System.Guid) (d : Task) =
+let accept (taskId : System.Guid) user (d : Task) =
     match d with
     | NewTask t -> if t.Id = taskId then (AcceptedTask (t , user)) else d    
     | BumpedTask (t , _) -> if t.Id = taskId then (AcceptedTask (t , user)) else d  
@@ -154,14 +152,13 @@ let update (msg:Msg) (model:Model) =
     | Search searchText ->
         { model with CurrentSearch = searchText }
     | AcceptTask task ->
-        let tasks = model.Tasks |> List.map (accept task)
+        let tasks = model.Tasks |> List.map (accept task model.CurrentUser)
         { model with Tasks = tasks |> sortTasks }
     | FinishTask task ->   
         let tasks = model.Tasks |> List.map (finish task)
         { model with Tasks = tasks |> sortTasks }
     | UpdateUser u -> 
-        user <- u
-        sprintf "Task %s " user |> Browser.console.log
+        sprintf "Switched to %s " u |> Browser.console.log
         { model with CurrentUser = u  }
 
 
@@ -364,7 +361,7 @@ let view (model:Model) dispatch =
                     Input.Value model.CurrentSearch
                     Input.OnChange (fun ev -> Search ev.Value |> dispatch)
                     ]  
-                  Navbar.Link.a [ ] [ str user ]
+                  Navbar.Link.a [ ] [ str model.CurrentUser ]
                   Navbar.Dropdown.div [ ]
                     [ Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Matthias" |> dispatch)] ]
                         [ str "Matthias" ]
