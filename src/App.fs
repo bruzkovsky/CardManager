@@ -170,7 +170,7 @@ let update (msg:Msg) (model:Model) =
 open Fulma
 
 let newDraftTile dispatch (draft : DraftModel) =
-    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
+    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
                 [ Card.Header.title [] [ str draft.Title ] ]
@@ -183,7 +183,7 @@ let newDraftTile dispatch (draft : DraftModel) =
                   ] ] ]
 
 let rejectedDraftTile dispatch (draft : DraftModel) =
-    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
+    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
                 [ Card.Header.title [] [ str draft.Title ] ]
@@ -196,7 +196,7 @@ let rejectedDraftTile dispatch (draft : DraftModel) =
 
 let bumpedDraftTile dispatch (draft : DraftModel) (bumps : int) =
     let text = sprintf "Rating: %d" bumps
-    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
+    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
                 [ Card.Header.title [] [ str draft.Title ] 
@@ -211,7 +211,7 @@ let bumpedDraftTile dispatch (draft : DraftModel) (bumps : int) =
 
 let acceptedTaskTile dispatch (draft : DraftModel)  (assignee : string) =
     let text = sprintf "%s %s This task was accepted by %s" draft.Description System.Environment.NewLine assignee
-    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
+    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
                 [ Card.Header.title [] [ str draft.Title ] ]
@@ -223,7 +223,7 @@ let acceptedTaskTile dispatch (draft : DraftModel)  (assignee : string) =
                 ] ] ]
 
 let finishedTaskTile dispatch (draft : DraftModel)  =
-    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is4; Tile.CustomClass "content-card" ]
+    Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
                 [ Card.Header.title [] [ str draft.Title ] ]
@@ -279,84 +279,13 @@ let getVisibleTiles  (model : Model) =
                 None           
         )
 
-
-let rec chunkByThree soFar l =
-    match l with
-    | x1::x2::[x3] ->
-        [x1; x2; x3]::soFar
-    | x1::x2::x3::xs ->
-        chunkByThree ([x1; x2; x3]::soFar) xs
-    | xs ->
-        xs::soFar
-
 let toCardRows dispatch (titles : Draft list) =
     titles
-    |> chunkByThree []
     |> List.rev
-    |> List.map ((List.map (toCard dispatch)) >> toCardRow)
+    |> List.map (toCard dispatch)
 
-(*
-let view (model:Model) dispatch =   
-    div []
-      [ Navbar.navbar [ Navbar.Color IsBlack ]
-            [ Navbar.Brand.div []
-                [ Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
-                    [ str "Card Manager" ] ] ]
-        Container.container [ Container.IsFluid ]
-          [ h1 [ Class "is-size-1 app-title" ] [ str "Manage your Cards" ]
-            Tile.tile [ Tile.IsAncestor; Tile.IsVertical ]
-                [ yield Tile.tile [ Tile.IsParent; Tile.Size Tile.Is12 ]
-                    [ Tile.tile [ Tile.IsChild ]
-                        [ Card.card []
-                            [ Card.header []
-                                [ Card.Header.title [] [ str "Write a draft!" ] ]
-                              Card.content []
-                                [ Input.text [ Input.Placeholder "Your draft"
-                                               Input.Value model.DraftForm.Title
-                                               Input.OnChange (fun ev -> UpdateDraftForm (ev.Value, "title") |> dispatch)
-                                               Input.Option.Props
-                                                 [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ]
-                                  Input.text [ Input.Placeholder "Decription"
-                                               Input.Value model.DraftForm.Description
-                                               Input.OnChange (fun ev -> UpdateDraftForm (ev.Value, "description") |> dispatch)
-                                               Input.Option.Props
-                                                 [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ] 
-                                  Input.text [ Input.Placeholder "Search"
-                                               Input.Value model.CurrentSearch
-                                               Input.OnChange (fun ev -> Search ev.Value |> dispatch)                                               
-                                             ]]
-                              Card.footer []
-                                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> dispatch CreateDraft) ] ]
-                                    [ str "Submit" ] ] ] ] ]
-                  yield! model |> getVisibleTiles  |> toCardRows dispatch ] ] ]
-*)
-let view (model:Model) dispatch =   
-    div []
-      [ Navbar.navbar [ Navbar.Color IsBlack ]
-            [ Navbar.Brand.div []
-                [ Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
-                    [ str "Task Manager" ] ]
-              
-              Navbar.End.div [ ]
-                [Navbar.Item.a  [   Navbar.Item.HasDropdown
-                                    Navbar.Item.IsHoverable ]
-                [ 
-                  Input.text [ 
-                    Input.Placeholder "Search"
-                    Input.Value model.CurrentSearch
-                    Input.OnChange (fun ev -> Search ev.Value |> dispatch)
-                    ]  
-                  Navbar.Link.a [ ] [ str user ]
-                  Navbar.Dropdown.div [ ]
-                    [ Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Matthias" |> dispatch)] ]
-                        [ str "Matthias" ]
-                      Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Jürgen" |> dispatch)] ]
-                        [ str "Jürgen" ]
-                      Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Tanja" |> dispatch)] ]
-                        [ str "Tanja" ] ] ]]]
-
-        Columns.columns [] [
-            Column.column [ Column.Width (Screen.All, Column.Is4) ] [
+let newTasksColumn (model:Model) dispatch =
+    Column.column [ Column.Width (Screen.All, Column.Is4) ] [
                 Hero.hero [ Hero.Color IsInfo ] [
                       Hero.body [] [
                         Heading.h1 [ ] [ str "New tasks" ] ] ]
@@ -390,7 +319,9 @@ let view (model:Model) dispatch =
                                     | BumpedDraft _ -> true
                                     | _ -> false)
                                 |> toCardRows dispatch ] ] ]
-            Column.column [ Column.Width (Screen.All, Column.Is4) ] [
+
+let runningTasksColumn (model:Model) dispatch =
+    Column.column [ Column.Width (Screen.All, Column.Is4) ] [
                 Hero.hero [ Hero.Color IsWarning ] [
                       Hero.body [] [
                         Heading.h1 [ ] [ str "Running tasks" ] ] ] 
@@ -402,7 +333,9 @@ let view (model:Model) dispatch =
                                     | AcceptedTask _ -> true
                                     | _ -> false)
                                 |> toCardRows dispatch ] ] ]
-            Column.column [ Column.Width (Screen.All, Column.Is4) ] [
+
+let finishedTasksColumn (model:Model) dispatch =
+    Column.column [ Column.Width (Screen.All, Column.Is4) ] [
                 Hero.hero [ Hero.Color IsSuccess ] [
                       Hero.body [] [
                         Heading.h1 [ ] [ str "Finished tasks" ] ] ]
@@ -413,7 +346,37 @@ let view (model:Model) dispatch =
                                   match x with
                                     | FinishedDraft _ -> true
                                     | _ -> false)
-                                |> toCardRows dispatch ] ] ] ] ]
+                                |> toCardRows dispatch ] ] ]
+
+let view (model:Model) dispatch =   
+    div []
+      [ Navbar.navbar [ Navbar.Color IsBlack ]
+            [ Navbar.Brand.div []
+                [ Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
+                    [ str "Task Manager" ] ]
+              
+              Navbar.End.div [ ]
+                [Navbar.Item.a  [   Navbar.Item.HasDropdown
+                                    Navbar.Item.IsHoverable ]
+                [ 
+                  Input.text [ 
+                    Input.Placeholder "Search"
+                    Input.Value model.CurrentSearch
+                    Input.OnChange (fun ev -> Search ev.Value |> dispatch)
+                    ]  
+                  Navbar.Link.a [ ] [ str user ]
+                  Navbar.Dropdown.div [ ]
+                    [ Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Matthias" |> dispatch)] ]
+                        [ str "Matthias" ]
+                      Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Jürgen" |> dispatch)] ]
+                        [ str "Jürgen" ]
+                      Navbar.Item.a [ Navbar.Item.Props [ OnClick (fun ev -> UpdateUser "Tanja" |> dispatch)] ]
+                        [ str "Tanja" ] ] ]]]
+
+        Columns.columns [] [
+            newTasksColumn model dispatch
+            runningTasksColumn model dispatch
+            finishedTasksColumn model dispatch ] ]
 
 #if DEBUG
 open Elmish.Debug
