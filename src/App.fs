@@ -10,158 +10,158 @@ module Browser = Fable.Import.Browser
 
 let mutable user = "Matthias"
 
-type DraftModel = 
+type TaskModel = 
     {
         Id : Guid
         Title : string
         Description : string
     }
 
-type Draft =
-    | NewDraft of DraftModel
-    | BumpedDraft of DraftModel * int
-    | RejectedDraft of DraftModel
-    | AcceptedTask of DraftModel * string
-    | FinishedDraft of DraftModel
+type Task =
+    | NewTask of TaskModel
+    | BumpedTask of TaskModel * int
+    | RejectedTask of TaskModel
+    | AcceptedTask of TaskModel * string
+    | FinishedTask of TaskModel
 
 type Model =
-    { DraftForm : DraftModel
-      Drafts : Draft list
+    { TaskForm : TaskModel
+      Tasks : Task list
       CurrentSearch : string
       CurrentUser : string
      }
 
 
 type Msg =
-| UpdateDraftForm of string * string
-| CreateDraft
-| BumpDraft of System.Guid
+| UpdateTaskForm of string * string
+| CreateTask
+| BumpTask of System.Guid
 | AcceptTask of System.Guid
 | FinishTask of System.Guid
-| RejectDraft of System.Guid
-| UnbumpDraft of System.Guid
-| RemoveDraft of System.Guid
+| RejectTask of System.Guid
+| UnbumpTask of System.Guid
+| RemoveTask of System.Guid
 | Search of string
 | UpdateUser of string
 
 let init() : Model =
     {
-      DraftForm = {
+      TaskForm = {
           Id = Guid.NewGuid()
           Title = ""
           Description = ""
         }          
-      Drafts = []
+      Tasks = []
       CurrentSearch = ""
       CurrentUser = "Matthias"
     }
 
 // UPDATE
 
-let bump (draftId : System.Guid) (d : Draft) =
+let bump (taskId : System.Guid) (d : Task) =
     match d with
-    | NewDraft t ->
-        if t.Id = draftId then
-            sprintf "Draft %s has its first bump!" t.Title
+    | NewTask t ->
+        if t.Id = taskId then
+            sprintf "Task %s has its first bump!" t.Title
             |> Browser.console.log
-            (BumpedDraft (t, 1))
+            (BumpedTask (t, 1))
         else d
-    | BumpedDraft (t, b) ->
-        if t.Id = draftId then
-            sprintf "Draft %s has now %d bumps!" t.Title b
+    | BumpedTask (t, b) ->
+        if t.Id = taskId then
+            sprintf "Task %s has now %d bumps!" t.Title b
             |> Browser.console.log
-            (BumpedDraft (t, b + 1))
+            (BumpedTask (t, b + 1))
         else d
-    | RejectedDraft _ -> d
+    | RejectedTask _ -> d
     | _ -> d
 
-let unbump (draftId : System.Guid) (d : Draft) =
+let unbump (taskId : System.Guid) (d : Task) =
     match d with
-    | NewDraft _ -> d
-    | BumpedDraft (t, b) when b > 1 ->
-        if t.Id = draftId then
-            (BumpedDraft (t, b - 1))
+    | NewTask _ -> d
+    | BumpedTask (t, b) when b > 1 ->
+        if t.Id = taskId then
+            (BumpedTask (t, b - 1))
         else d
-    | BumpedDraft (t, _) ->
-        NewDraft t
-    | RejectedDraft _ -> d
+    | BumpedTask (t, _) ->
+        NewTask t
+    | RejectedTask _ -> d
     | AcceptedTask ( t , _) -> 
-        if t.Id = draftId then
-            (BumpedDraft (t, 0))
+        if t.Id = taskId then
+            (BumpedTask (t, 0))
         else d
     | _ -> d
 
-let reject (draftId : System.Guid) (d : Draft) =
+let reject (taskId : System.Guid) (d : Task) =
     match d with
-    | NewDraft t ->
-        if t.Id = draftId then (RejectedDraft t) else d
-    | BumpedDraft _ -> d
-    | RejectedDraft _ -> d
+    | NewTask t ->
+        if t.Id = taskId then (RejectedTask t) else d
+    | BumpedTask _ -> d
+    | RejectedTask _ -> d
     | _ -> d
 
-let accept (draftId : System.Guid) (d : Draft) =
+let accept (taskId : System.Guid) (d : Task) =
     match d with
-    | NewDraft t -> if t.Id = draftId then (AcceptedTask (t , user)) else d    
-    | BumpedDraft (t , _) -> if t.Id = draftId then (AcceptedTask (t , user)) else d  
+    | NewTask t -> if t.Id = taskId then (AcceptedTask (t , user)) else d    
+    | BumpedTask (t , _) -> if t.Id = taskId then (AcceptedTask (t , user)) else d  
     | _ -> d
 
-let finish (draftId : System.Guid) (d : Draft) =
+let finish (taskId : System.Guid) (d : Task) =
     match d with
-    | AcceptedTask (t , _) -> if t.Id = draftId then (FinishedDraft t ) else d     
+    | AcceptedTask (t , _) -> if t.Id = taskId then (FinishedTask t ) else d     
     | _ -> d
 
-let sortDrafts( drafts : Draft list)=
-    drafts |> List.sortByDescending(fun elem -> 
+let sortTasks( tasks : Task list)=
+    tasks |> List.sortByDescending(fun elem -> 
             match elem with
-               | NewDraft _-> 0
-               | BumpedDraft (t, b) -> b 
-               | RejectedDraft _ -> -1 
+               | NewTask _-> 0
+               | BumpedTask (t, b) -> b 
+               | RejectedTask _ -> -1 
                | _ -> 0         
             )
 
 let update (msg:Msg) (model:Model) =
     match msg with
-    | UpdateDraftForm (value, prop) ->
+    | UpdateTaskForm (value, prop) ->
         match prop with
-        | "title" ->{ model with DraftForm = {model.DraftForm with Title = value} }
-        | "description" ->{ model with DraftForm = {model.DraftForm with Description = value} }
+        | "title" ->{ model with TaskForm = {model.TaskForm with Title = value} }
+        | "description" ->{ model with TaskForm = {model.TaskForm with Description = value} }
         | _ -> model
-    | CreateDraft ->
-        let newDraft = NewDraft model.DraftForm
+    | CreateTask ->
+        let newTask = NewTask model.TaskForm
         { model with
-            DraftForm = {
+            TaskForm = {
                 Id = Guid.NewGuid()
                 Title = ""
                 Description = ""}
-            Drafts = newDraft::model.Drafts |> sortDrafts }
-    | BumpDraft draft ->
-        let drafts = model.Drafts |> List.map (bump draft)
-        { model with Drafts = drafts |> sortDrafts}
-    | RejectDraft draft ->
-        let drafts = model.Drafts |> List.map (reject draft)
-        { model with Drafts = drafts |> sortDrafts }
-    | UnbumpDraft draft ->
-        let drafts = model.Drafts |> List.map (unbump draft)
-        { model with Drafts = drafts |> sortDrafts }
-    | RemoveDraft draft ->
-        let drafts = model.Drafts |> List.choose (fun elem ->
+            Tasks = newTask::model.Tasks |> sortTasks }
+    | BumpTask task ->
+        let tasks = model.Tasks |> List.map (bump task)
+        { model with Tasks = tasks |> sortTasks}
+    | RejectTask task ->
+        let tasks = model.Tasks |> List.map (reject task)
+        { model with Tasks = tasks |> sortTasks }
+    | UnbumpTask task ->
+        let tasks = model.Tasks |> List.map (unbump task)
+        { model with Tasks = tasks |> sortTasks }
+    | RemoveTask task ->
+        let tasks = model.Tasks |> List.choose (fun elem ->
                 match elem with
-                | RejectedDraft d -> if d.Id = draft then None else Some(elem)
-                | FinishedDraft d -> if d.Id = draft then None else Some(elem)
+                | RejectedTask d -> if d.Id = task then None else Some(elem)
+                | FinishedTask d -> if d.Id = task then None else Some(elem)
                 | _ -> Some(elem))
-        printfn "%A" drafts  |> Browser.console.log
-        { model with Drafts = drafts |> sortDrafts }
+        printfn "%A" tasks  |> Browser.console.log
+        { model with Tasks = tasks |> sortTasks }
     | Search searchText ->
         { model with CurrentSearch = searchText }
-    | AcceptTask draft ->
-        let drafts = model.Drafts |> List.map (accept draft)
-        { model with Drafts = drafts |> sortDrafts }
-    | FinishTask draft ->   
-        let drafts = model.Drafts |> List.map (finish draft)
-        { model with Drafts = drafts |> sortDrafts }
+    | AcceptTask task ->
+        let tasks = model.Tasks |> List.map (accept task)
+        { model with Tasks = tasks |> sortTasks }
+    | FinishTask task ->   
+        let tasks = model.Tasks |> List.map (finish task)
+        { model with Tasks = tasks |> sortTasks }
     | UpdateUser u -> 
         user <- u
-        sprintf "Draft %s " user |> Browser.console.log
+        sprintf "Task %s " user |> Browser.console.log
         { model with CurrentUser = u  }
 
 
@@ -169,100 +169,100 @@ let update (msg:Msg) (model:Model) =
 
 open Fulma
 
-let newDraftTile dispatch (draft : DraftModel) =
+let newTaskTile dispatch (task : TaskModel) =
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str draft.Title ] ]
+                [ Card.Header.title [] [ str task.Title ] ]
               Card.content []
-                [ Content.content [] [ str draft.Description ] ]
+                [ Content.content [] [ str task.Description ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft draft.Id |> dispatch) ] ] [ str "Bump" ]
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RejectDraft draft.Id |> dispatch) ] ] [ str "Reject" ] 
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> AcceptTask draft.Id |> dispatch) ] ] [ str "Accept" ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpTask task.Id |> dispatch) ] ] [ str "Bump" ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RejectTask task.Id |> dispatch) ] ] [ str "Reject" ] 
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> AcceptTask task.Id |> dispatch) ] ] [ str "Accept" ]
                   ] ] ]
 
-let rejectedDraftTile dispatch (draft : DraftModel) =
+let rejectedTaskTile dispatch (task : TaskModel) =
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str draft.Title ] ]
+                [ Card.Header.title [] [ str task.Title ] ]
               Card.content []
-                [ Content.content [] [ str "Unfortunately this draft has been rejected 🙁" ] ]
+                [ Content.content [] [ str "Unfortunately this task has been rejected 🙁" ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveDraft draft.Id |> dispatch) ] ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveTask task.Id |> dispatch) ] ]
                     [ str "Remove" ]               
                 ] ] ]
 
-let bumpedDraftTile dispatch (draft : DraftModel) (bumps : int) =
+let bumpedTaskTile dispatch (task : TaskModel) (bumps : int) =
     let text = sprintf "Rating: %d" bumps
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str draft.Title ] 
+                [ Card.Header.title [] [ str task.Title ] 
                   Content.content [] [ str text ]]
               Card.content []
-                [ Content.content [] [ str draft.Description ] ]
+                [ Content.content [] [ str task.Description ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpDraft draft.Id |> dispatch) ] ] [ str "Bump" ]
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> UnbumpDraft draft.Id |> dispatch) ] ] [ str "UmBump" ]
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> AcceptTask draft.Id |> dispatch) ] ] [ str "Accept" ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> BumpTask task.Id |> dispatch) ] ] [ str "Bump" ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> UnbumpTask task.Id |> dispatch) ] ] [ str "UmBump" ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> AcceptTask task.Id |> dispatch) ] ] [ str "Accept" ]
                 ] ] ]
 
-let acceptedTaskTile dispatch (draft : DraftModel)  (assignee : string) =
-    let text = sprintf "%s %s This task was accepted by %s" draft.Description System.Environment.NewLine assignee
+let acceptedTaskTile dispatch (task : TaskModel)  (assignee : string) =
+    let text = sprintf "%s %s This task was accepted by %s" task.Description System.Environment.NewLine assignee
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str draft.Title ] ]
+                [ Card.Header.title [] [ str task.Title ] ]
               Card.content []
-                [ Content.content [] [ str (draft.Description + "\n" + text) ] ]
+                [ Content.content [] [ str (task.Description + "\n" + text) ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> FinishTask draft.Id |> dispatch) ] ] [ str "Finish" ]
-                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> UnbumpDraft draft.Id |> dispatch) ] ]  [ str "Move back" ]
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> FinishTask task.Id |> dispatch) ] ] [ str "Finish" ]
+                  Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> UnbumpTask task.Id |> dispatch) ] ]  [ str "Move back" ]
                 ] ] ]
 
-let finishedTaskTile dispatch (draft : DraftModel)  =
+let finishedTaskTile dispatch (task : TaskModel)  =
     Tile.tile [ Tile.IsChild; Tile.Size Tile.Is12; Tile.CustomClass "content-card" ]
         [ Card.card [ ]
             [ Card.header []
-                [ Card.Header.title [] [ str draft.Title ] ]
+                [ Card.Header.title [] [ str task.Title ] ]
               Card.content []
                 [ Content.content [] [ str "You have finished this task. Well done! 👏" ] ]
               Card.footer []
-                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveDraft draft.Id |> dispatch) ] ] [ str "Remove" ]               
+                [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> RemoveTask task.Id |> dispatch) ] ] [ str "Remove" ]               
                 ] ] ]
 
-let toCard dispatch (draft : Draft) =
-    match draft with
-    | NewDraft title ->
-        newDraftTile dispatch title
-    | BumpedDraft (title, bumps) ->
-        bumpedDraftTile dispatch title bumps
-    | RejectedDraft title ->
-        rejectedDraftTile dispatch title
+let toCard dispatch (task : Task) =
+    match task with
+    | NewTask title ->
+        newTaskTile dispatch title
+    | BumpedTask (title, bumps) ->
+        bumpedTaskTile dispatch title bumps
+    | RejectedTask title ->
+        rejectedTaskTile dispatch title
     | AcceptedTask (d , u) -> 
         acceptedTaskTile dispatch d u
-    | FinishedDraft d -> 
+    | FinishedTask d -> 
         finishedTaskTile dispatch d 
 
 let toCardRow row =
     Tile.tile [ Tile.IsParent; Tile.Size Tile.Is12 ] row
 
 let getVisibleTiles  (model : Model) = 
-    model.Drafts |> List.choose (fun elem ->
+    model.Tasks |> List.choose (fun elem ->
         match elem with
-        |  NewDraft d ->
+        |  NewTask d ->
             if d.Title.IndexOf(model.CurrentSearch) <> -1 || d.Description.IndexOf(model.CurrentSearch) <> -1 then
                 Some(elem)
             else
                 None
-        |  BumpedDraft (d , _) ->
+        |  BumpedTask (d , _) ->
             if d.Title.IndexOf(model.CurrentSearch) <> -1 || d.Description.IndexOf(model.CurrentSearch) <> -1 then
                 Some(elem)
             else
                 None          
-        |  RejectedDraft d  ->
+        |  RejectedTask d  ->
             if d.Title.IndexOf(model.CurrentSearch) <> -1 || d.Description.IndexOf(model.CurrentSearch) <> -1 then
                 Some(elem)
             else
@@ -272,14 +272,14 @@ let getVisibleTiles  (model : Model) =
                 Some(elem)
             else
                 None           
-        |  FinishedDraft d  ->
+        |  FinishedTask d  ->
             if d.Title.IndexOf(model.CurrentSearch) <> -1 || d.Description.IndexOf(model.CurrentSearch) <> -1 then
                 Some(elem)
             else
                 None           
         )
 
-let toCardRows dispatch (titles : Draft list) =
+let toCardRows dispatch (titles : Task list) =
     titles
     |> List.rev
     |> List.map (toCard dispatch)
@@ -300,23 +300,23 @@ let newTasksColumn (model:Model) dispatch =
                                             [ 
                                             Input.text [ 
                                                 Input.Placeholder "Your task"
-                                                Input.Value model.DraftForm.Title
-                                                Input.OnChange (fun ev -> UpdateDraftForm (ev.Value, "title") |> dispatch)
-                                                Input.Option.Props [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ]
+                                                Input.Value model.TaskForm.Title
+                                                Input.OnChange (fun ev -> UpdateTaskForm (ev.Value, "title") |> dispatch)
+                                                Input.Option.Props [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateTask)  ] ]
                                             Input.text [ 
                                                 Input.Placeholder "Decription"
-                                                Input.Value model.DraftForm.Description
-                                                Input.OnChange (fun ev -> UpdateDraftForm (ev.Value, "description") |> dispatch)
-                                                Input.Option.Props [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateDraft)  ] ]     
+                                                Input.Value model.TaskForm.Description
+                                                Input.OnChange (fun ev -> UpdateTaskForm (ev.Value, "description") |> dispatch)
+                                                Input.Option.Props [ OnKeyUp (fun key -> if key.which = 13.0 then dispatch CreateTask)  ] ]     
                                             ]
                                           Card.footer []
-                                            [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> dispatch CreateDraft) ] ]
+                                            [ Card.Footer.a [ GenericOption.Props [ OnClick (fun _ -> dispatch CreateTask) ] ]
                                                 [ str "Submit" ] ] ] ] ]
                               yield! model |> getVisibleTiles
                                 |> List.filter (fun x ->
                                   match x with
-                                    | NewDraft _ -> true
-                                    | BumpedDraft _ -> true
+                                    | NewTask _ -> true
+                                    | BumpedTask _ -> true
                                     | _ -> false)
                                 |> toCardRows dispatch ] ] ]
 
@@ -344,7 +344,7 @@ let finishedTasksColumn (model:Model) dispatch =
                       [ yield! model |> getVisibleTiles
                                 |> List.filter (fun x ->
                                   match x with
-                                    | FinishedDraft _ -> true
+                                    | FinishedTask _ -> true
                                     | _ -> false)
                                 |> toCardRows dispatch ] ] ]
 
