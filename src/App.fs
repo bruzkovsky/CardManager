@@ -278,7 +278,6 @@ let getVisibleTiles  (model : Model) =
 
 let toCardRows dispatch (titles : Task list) =
     titles
-    |> List.rev
     |> List.map (toCard dispatch)
 
 let newTasksColumn (model:Model) dispatch =
@@ -314,7 +313,8 @@ let newTasksColumn (model:Model) dispatch =
                                   match x with
                                     | NewTask _ -> true
                                     | BumpedTask _ -> true
-                                    | _ -> false)
+                                    | _ -> false)  
+                                |> sortTasks
                                 |> toCardRows dispatch ] ] ]
 
 let runningTasksColumn (model:Model) dispatch =
